@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BestHouse.uz — Агрегатор и карта недвижимости Ташкента (OLX, Uybor, Uysot, Domtut)</title>
+  <meta name="description" content="Интерактивная карта-агрегатор недвижимости Ташкента (OLX.uz, Uybor.uz, Uysot.uz, Domtut.uz, Etagi.com) с экологическими и транспортными слоями: качество воздуха (AQI), шум, пробки, метро и парки." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-logo">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>
+      </span>
+      <span>BestHouse<b>.uz</b></span>
+    </a>
+
+    <div class="search-box">
+      <svg class="search-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input type="search" id="searchInput" placeholder="Поиск: район, квартал, ЖК, метро или площадка…" autocomplete="off" />
+      <button class="search-clear" id="searchClear" aria-label="Очистить поиск" hidden>&times;</button>
+    </div>
+
+    <div class="topbar-stats" id="topStats"></div>
+
+    <div class="topbar-actions">
+      <button class="btn-pill btn-portals" id="openPortalsModal" title="Интеграция с OLX.uz, Uybor.uz, Uysot.uz, Domtut.uz и импорт объявлений">
+        <span class="live-dot"></span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span class="hide-sm">OLX и площадки</span>
+      </button>
+
+      <button class="btn-pill" id="favFilterBtn" title="Показать избранные объекты">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span class="hide-sm">Избранное</span>
+        <b class="badge-count" id="favCount" hidden>0</b>
+      </button>
+
+      <button class="btn-icon" id="themeToggle" aria-label="Переключить тему" title="Тёмная / светлая тема">
+        <svg class="ico-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="ico-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+
+      <button class="btn-icon only-mobile" id="toggleSidebar" aria-label="Фильтры и список">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ============ Сайдбар: фильтры + список ============ -->
+    <aside class="sidebar" id="sidebar">
+      <section class="filters" id="filtersSection">
+        <div class="filters-head">
+          <button class="filters-collapse-btn" id="collapseFilters" type="button" title="Свернуть/развернуть фильтры">
+            <h2>Фильтры</h2>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="filters-head-actions">
+            <button class="link-btn" id="resetFilters">Сбросить</button>
+            <button class="btn-icon-sm only-mobile" id="closeSidebar" aria-label="Закрыть панель">&times;</button>
+          </div>
+        </div>
+
+        <div class="filters-body" id="filtersBody">
+          <div class="f-group">
+            <label class="f-label">
+              <span>Площадки объявлений</span>
+              <button class="link-btn sm-link" id="openImportInline" type="button">+ Импорт (Uybor / OLX)</button>
+            </label>
+            <div class="chips chips-sources" id="sourceChips">
+              <button class="chip chip-src" data-source="uybor"><i class="src-dot" style="background:#00a651"></i>Uybor.uz</button>
+              <button class="chip chip-src" data-source="olx"><i class="src-dot" style="background:#002f34;border:1.5px solid #23e5db"></i>OLX.uz</button>
+              <button class="chip chip-src" data-source="uysot"><i class="src-dot" style="background:#ff5a00"></i>Uysot</button>
+              <button class="chip chip-src" data-source="domtut"><i class="src-dot" style="background:#2563eb"></i>Domtut</button>
+              <button class="chip chip-src" data-source="etagi"><i class="src-dot" style="background:#e31e24"></i>Этажи</button>
+              <button class="chip chip-src" data-source="realt24"><i class="src-dot" style="background:#0d9488"></i>Realt24</button>
+              <button class="chip chip-src" data-source="joymee"><i class="src-dot" style="background:#7c3aed"></i>Joymee</button>
+            </div>
+          </div>
+
+          <div class="f-row-split">
+            <div class="f-group">
+              <label class="f-label">Тип жилья</label>
+              <div class="chips" id="typeChips">
+                <button class="chip" data-type="Новостройка">Новостройка</button>
+                <button class="chip" data-type="Вторичка">Вторичка</button>
+                <button class="chip" data-type="Дом">Дом</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="f-row-2col">
+            <div class="f-group">
+              <label class="f-label" for="districtSelect">Район</label>
+              <select id="districtSelect" class="select select-full">
+                <option value="">Все районы</option>
+              </select>
+            </div>
+            <div class="f-group">
+              <label class="f-label">Комнаты</label>
+              <div class="chips chips-rooms" id="roomChips">
+                <button class="chip" data-rooms="1">1</button>
+                <button class="chip" data-rooms="2">2</button>
+                <button class="chip" data-rooms="3">3</button>
+                <button class="chip" data-rooms="4">4+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="f-group">
+            <label class="f-label">Цена, $ <span class="f-value" id="priceLabel"></span></label>
+            <div class="range-dual" id="priceRange">
+              <div class="range-track"><div class="range-fill"></div></div>
+              <input type="range" id="priceMin" step="5000" aria-label="Минимальная цена" />
+              <input type="range" id="priceMax" step="5000" aria-label="Максимальная цена" />
+            </div>
+          </div>
+
+          <div class="f-group">
+            <label class="f-label" for="maxAqi">
+              <span><i class="dot" style="background:#1fbf6a"></i>Макс. AQI воздуха</span>
+              <span class="f-value" id="aqiLabel"></span>
+            </label>
+            <input type="range" class="range-single range-aqi" id="maxAqi" min="40" max="200" step="5" />
+          </div>
+
+          <div class="f-group">
+            <label class="f-label" for="maxNoise">
+              <span><i class="dot" style="background:#f5a524"></i>Макс. уровень шума</span>
+              <span class="f-value" id="noiseLabel"></span>
+            </label>
+            <input type="range" class="range-single range-noise" id="maxNoise" min="40" max="80" step="1" />
+          </div>
+
+          <div class="f-group" style="margin-bottom:8px">
+            <label class="f-label" for="maxWalk">
+              <span><i class="dot" style="background:#1e88e5"></i>До метро пешком</span>
+              <span class="f-value" id="walkLabel"></span>
+            </label>
+            <input type="range" class="range-single range-metro" id="maxWalk" min="5" max="60" step="5" />
+          </div>
+
+          <!-- Быстрый переход с текущими фильтрами на внешние сайты -->
+          <div class="ext-filter-bar" id="extFilterBar"></div>
+        </div>
+      </section>
+
+      <section class="results">
+        <div class="results-head">
+          <div>
+            <strong id="resultCount">0</strong> <span class="muted" id="resultSub">объектов</span>
+          </div>
+          <select id="sortBy" class="select" aria-label="Сортировка">
+            <option value="eco">Сначала экологичные</option>
+            <option value="price-asc">Сначала дешевле</option>
+            <option value="price-desc">Сначала дороже</option>
+            <option value="ppm">Цена за м²</option>
+            <option value="metro">Ближе к метро</option>
+            <option value="new">Новые объявления</option>
+          </select>
+        </div>
+        <div class="results-subbar">
+          <label class="toggle-inline">
+            <input type="checkbox" id="onlyInView" checked />
+            <span>В видимой области карты</span>
+          </label>
+        </div>
+        <div class="cards" id="cards"></div>
+      </section>
+    </aside>
+
+    <!-- ============ Карта ============ -->
+    <section class="map-wrap">
+      <div id="map"></div>
+
+      <!-- Панель слоёв -->
+      <div class="layer-panel" id="layerPanel">
+        <button class="layer-panel-toggle" id="layerPanelToggle" aria-label="Слои">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+          <span>Слои и карта</span>
+        </button>
+        <div class="layer-panel-body">
+          <div class="lp-section">
+            <div class="lp-title">Экология и транспорт</div>
+
+            <label class="layer-row" data-layer="air">
+              <span class="layer-ico" style="--c:#1fbf6a">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/></svg>
+              </span>
+              <span class="layer-name">Качество воздуха<small>AQI / PM2.5</small></span>
+              <input type="checkbox" class="switch" id="lyrAir" />
+            </label>
+            <div class="legend" id="legendAir">
+              <div class="legend-bar" style="background:linear-gradient(90deg,#1fbf6a 0%,#1fbf6a 22%,#f2d22e 37%,#f5a524 52%,#e5484d 73%,#8e3bc7 100%)"></div>
+              <div class="legend-ticks"><span>0</span><span>50</span><span>100</span><span>150</span><span>200+</span></div>
+              <div class="legend-cats">
+                <span><i style="background:#1fbf6a"></i>Хорошо</span><span><i style="background:#f2d22e"></i>Умеренно</span><span><i style="background:#e5484d"></i>Вредно</span>
+              </div>
+            </div>
+
+            <label class="layer-row" data-layer="noise">
+              <span class="layer-ico" style="--c:#f5a524">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
+              </span>
+              <span class="layer-name">Уровень шума<small>дБ(A), дневной Lden</small></span>
+              <input type="checkbox" class="switch" id="lyrNoise" />
+            </label>
+            <div class="legend" id="legendNoise">
+              <div class="legend-bar" style="background:linear-gradient(90deg,#1fbf6a 0%,#8fd14f 25%,#f2d22e 42%,#f5a524 60%,#e5484d 80%,#8e1d3b 100%)"></div>
+              <div class="legend-ticks"><span>38</span><span>48</span><span>55</span><span>62</span><span>70</span><span>78 дБ</span></div>
+              <div class="legend-cats">
+                <span><i style="background:#1fbf6a"></i>Спальный район</span><span><i style="background:#e5484d"></i>У магистрали</span>
+              </div>
+            </div>
+
+            <label class="layer-row" data-layer="traffic">
+              <span class="layer-ico" style="--c:#e5484d">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="6" rx="2"/><path d="M5 11l2-5h10l2 5"/><circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/></svg>
+              </span>
+              <span class="layer-name">Пробки и трафик<small>загруженность дорог</small></span>
+              <input type="checkbox" class="switch" id="lyrTraffic" />
+            </label>
+            <div class="legend" id="legendTraffic">
+              <div class="traffic-time">
+                <div class="traffic-score" id="trafficScore">
+                  <b>5</b><span>баллов</span>
+                </div>
+                <div class="traffic-slider">
+                  <div class="f-label"><span>Время суток</span><span class="f-value" id="hourLabel">18:00</span></div>
+                  <input type="range" id="hourRange" min="0" max="23" step="1" class="range-single range-traffic" />
+                  <div class="hour-chart" id="hourChart" title="Кликните на столбец для выбора часа"></div>
+                  <div class="hour-actions">
+                    <button class="mini-btn" data-hour="9">Утро 9:00</button>
+                    <button class="mini-btn" data-hour="13">День 13:00</button>
+                    <button class="mini-btn" data-hour="18">Вечер 18:00</button>
+                    <button class="mini-btn" data-hour="now">Сейчас</button>
+                  </div>
+                </div>
+              </div>
+              <div class="legend-cats">
+                <span><i style="background:#1fbf6a"></i>Свободно</span><span><i style="background:#f2d22e"></i>Плотно</span><span><i style="background:#e5484d"></i>Пробка</span>
+              </div>
+            </div>
+
+            <label class="layer-row" data-layer="transit">
+              <span class="layer-ico" style="--c:#1e88e5">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L8 6l4 8 4-8 4 14"/></svg>
+              </span>
+              <span class="layer-name">Метро, транспорт и парки<small>4 линии, изохроны, зелёные зоны</small></span>
+              <input type="checkbox" class="switch" id="lyrTransit" />
+            </label>
+            <div class="legend" id="legendTransit">
+              <div class="sub-toggles">
+                <label><input type="checkbox" id="subIso" checked /> Пешая доступность метро</label>
+                <label><input type="checkbox" id="subParks" checked /> Парки и зелёные зоны</label>
+                <label><input type="checkbox" id="subEntr" checked /> Входы в метро (приближение)</label>
+                <label><input type="checkbox" id="subBus" checked /> Автобусные маршруты</label>
+              </div>
+              <div class="legend-cats iso-cats">
+                <span><i class="iso iso5"></i>5 мин · 400 м</span><span><i class="iso iso10"></i>10 мин · 800 м</span><span><i class="iso iso15"></i>15 мин · 1.2 км</span>
+              </div>
+              <div class="legend-cats" id="metroLinesLegend"></div>
+            </div>
+          </div>
+
+          <div class="lp-section">
+            <div class="lp-title">На маркерах объектов</div>
+            <div class="seg" id="markerModeSeg">
+              <button data-mode="price" class="active">Цена ($)</button>
+              <button data-mode="ppm">За м²</button>
+              <button data-mode="eco">Эко-балл</button>
+            </div>
+          </div>
+
+          <div class="lp-section">
+            <div class="lp-title">Подложка карты</div>
+            <div class="seg" id="basemapSeg">
+              <button data-base="light" class="active">Светлая</button>
+              <button data-base="dark">Тёмная</button>
+              <button data-base="osm">OSM</button>
+            </div>
+          </div>
+
+          <div class="lp-hint">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+            Кликните по любой точке карты, чтобы увидеть эко-рейтинг и индексы локации
+          </div>
+        </div>
+      </div>
+
+      <!-- Мобильная нижняя панель быстрого доступа -->
+      <div class="mobile-bottom-bar only-mobile">
+        <button class="m-bar-btn primary" id="mobileOpenList">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          <span>Список (<b id="mobileCount">0</b>)</span>
+        </button>
+        <button class="m-bar-btn" id="mobileToggleLayers">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+          <span>Слои</span>
+        </button>
+      </div>
+
+      <div class="map-badge">Интеграция: Uybor.uz (Live API) · OLX.uz · Uysot.uz · Domtut.uz · Etagi · Realt24 · Joymee</div>
+    </section>
+  </main>
+
+  <!-- ============ Модальное окно: Интеграция с Uybor.uz, OLX.uz и площадками недвижимости ============ -->
+  <div class="modal-backdrop" id="portalsModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="portalsModalTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="portalsModalTitle">Подключение к Uybor.uz, OLX.uz и площадкам недвижимости</h2>
+          <p class="muted">Прямая Live-синхронизация с API Uybor.uz + агрегация с OLX.uz, Uysot.uz, Domtut.uz, Etagi.com, Realt24.uz и Joymee.uz</p>
+        </div>
+        <button class="btn-icon-sm" id="closePortalsModal" aria-label="Закрыть">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Секция 1: Статус площадок и синхронизация -->
+        <div class="modal-section">
+          <div class="modal-sec-head">
+            <h3>Подключённые площадки Ташкента (7 сайтов)</h3>
+            <button class="btn-primary btn-sm" id="syncFeedBtn" type="button">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+              <span>Синхронизировать с Uybor.uz API и площадками</span>
+            </button>
+          </div>
+          <div class="portals-grid" id="portalsStatsGrid"></div>
+        </div>
+
+        <!-- Секция 2: Умный импорт по ссылке или тексту с Uybor / OLX / Telegram -->
+        <div class="modal-section">
+          <h3>Импорт любого объявления по ссылке (Uybor.uz, OLX.uz, Uysot, Domtut, Realt24)</h3>
+          <p class="muted" style="margin:0 0 10px;font-size:12.5px">
+            Вставьте ссылку на объявление с <b>Uybor.uz</b> (подтянется напрямую через API Uybor!), <b>OLX.uz</b>, <b>Uysot.uz</b>, <b>Domtut.uz</b>, <b>Realt24.uz</b>, <b>Joymee.uz</b> или описание из Telegram.
+            Система определит точные координаты и рассчитает <b>AQI воздуха, шум в дБ и минуты до метро</b>:
+          </p>
+
+          <div class="import-samples">
+            <span class="muted">Примеры в 1 клик:</span>
+            <button class="mini-btn sample-btn" type="button" data-sample="https://uybor.uz/ru/listing/1324763">Live Uybor.uz (#1324763)</button>
+            <button class="mini-btn sample-btn" type="button" data-sample="https://uybor.uz/ru/listing/1324767">Live Uybor.uz (#1324767)</button>
+            <button class="mini-btn sample-btn" type="button" data-sample="https://www.olx.uz/d/obyavlenie/prodaetsya-3-komn-kvartira-chilonzor-7-kvartal-3-4-5-72-m2-evroremont-81000-usd-ID3a9f.html">Ссылка OLX (Чиланзар-7)</button>
+            <button class="mini-btn sample-btn" type="button" data-sample="https://realt24.uz/toshkent/sotib-olmoq/kvartiralar/mirzo-ulugbek-metro-3-komn-84-m2-118000-usd">Ссылка Realt24 (Дархан)</button>
+            <button class="mini-btn sample-btn" type="button" data-sample="ЖК Mirabad Avenue, м. Ойбек, 3/8/12, 96 м², дизайнерский евроремонт, $185 000">Текст ЖК Mirabad Avenue</button>
+          </div>
+
+          <div class="import-form">
+            <input type="text" id="importInput" class="import-input" placeholder="https://uybor.uz/ru/listing/1324763 или https://www.olx.uz/d/obyavlenie/..." />
+            <button class="btn-primary" id="importSubmitBtn" type="button" style="width:auto;white-space:nowrap;padding:0 18px">На карту +</button>
+          </div>
+
+          <div class="import-preview" id="importPreview" hidden></div>
+        </div>
+
+        <!-- Секция 3: Экспорт и управление -->
+        <div class="modal-section modal-footer-bar">
+          <div class="muted" style="font-size:12px">
+            Вы можете выгрузить отфильтрованные объекты вместе с их экологическими индексами в таблицу CSV (Excel).
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-secondary" id="exportCsvBtn" type="button" style="width:auto;margin:0;padding:8px 14px">
+              Скачать базу CSV (Excel)
+            </button>
+            <button class="btn-secondary" id="clearImportsBtn" type="button" style="width:auto;margin:0;padding:8px 14px">
+              Сбросить импортированные
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="js/real_db.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/integrations.js"></script>
+  <script src="js/layers.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

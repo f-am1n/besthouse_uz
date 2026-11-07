@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Объект — BestHouse.uz</title>
+  <meta name="description" content="Детальная информация об объекте недвижимости в Ташкенте: фотографии, характеристики, экологический паспорт локации, шум, трафик, метро и ссылки на OLX.uz, Uybor.uz, Uysot.uz." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>body { overflow-y: auto; }</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-logo">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>
+      </span>
+      <span>BestHouse<b>.uz</b></span>
+    </a>
+
+    <div class="topbar-actions" style="margin-left:auto">
+      <a class="btn-pill" id="topBackMap" href="index.html">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span>На карту</span>
+      </a>
+      <button class="btn-icon" id="themeToggle" aria-label="Переключить тему" title="Тёмная / светлая тема">
+        <svg class="ico-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="ico-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="detail" id="detail"></main>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Просмотр фотографий">
+    <button class="lb-btn lb-close" id="lbClose" aria-label="Закрыть">&times;</button>
+    <button class="lb-btn lb-prev" id="lbPrev" aria-label="Предыдущее фото">&#10094;</button>
+    <img id="lbImg" alt="Фото объекта" />
+    <button class="lb-btn lb-next" id="lbNext" aria-label="Следующее фото">&#10095;</button>
+    <div class="lb-counter" id="lbCounter">1 / 4</div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/real_db.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/integrations.js"></script>
+  <script src="js/property.js"></script>
+</body>
+</html>
